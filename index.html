@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>圖片時間排序提醒工具 Chrome V2A.0（手動輸入版）</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:Arial,"Noto Sans TC","Microsoft JhengHei",sans-serif}.wrap{max-width:1250px;margin:24px auto;padding:0 16px}h1{margin:0 0 8px;font-size:26px}.muted,.small{color:#667085;font-size:14px;line-height:1.6}.card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 2px 8px #1018280a}.grid{display:grid;grid-template-columns:1.1fr 1.9fr;gap:14px}@media(max-width:900px){.grid{grid-template-columns:1fr}}button{border:0;border-radius:8px;padding:9px 14px;margin:4px;cursor:pointer;font-weight:700}.primary{background:#2563eb;color:#fff}.gray{background:#e5e7eb;color:#111827}.warn{background:#f59e0b;color:#fff}.danger{background:#dc2626;color:#fff}.buttons{margin:8px 0}.status{white-space:pre-line;background:#f8fafc;border:1px solid #e4e7ec;border-radius:8px;padding:10px;margin-top:8px}.hint{background:#fffbeb;border:1px solid #fde68a;color:#854d0e;border-radius:9px;padding:11px}.ok{color:#15803d}.bad{color:#b91c1c}.reminder{font-size:18px;font-weight:700;line-height:1.7}.countdown{margin-top:5px}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.toolbar label{font-weight:700}.toolbar input{padding:8px;border:1px solid #cfd5df;border-radius:7px}.dateInput{width:150px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:9px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}th{background:#f8fafc;position:sticky;top:0;z-index:1}.inputTable input{width:100%;padding:8px;border:1px solid #cfd5df;border-radius:7px;font-size:16px}.time4{max-width:150px;font-weight:700;letter-spacing:1px}.offset{max-width:90px;text-align:center}.dbTable input{width:100%;padding:7px;border:1px solid #cfd5df;border-radius:7px}.resultTime{font-size:18px;font-weight:700}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;font-size:12px}.sectionTitle{display:flex;justify-content:space-between;gap:10px;align-items:center}.mono{font-family:Consolas,monospace}.sharebox input{width:100%;padding:8px;border:1px solid #cfd5df;border-radius:7px;margin-top:5px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>圖片時間排序提醒工具 — Chrome V2A.0（手動輸入版）</h1>
+<p class="muted">V2A.0 不使用 OCR。依 BOSS 資料庫順序逐筆手動輸入時間：日期預設當日；時間輸入 4 位數字（例如 2311 → 23:11）；「日期+1」填 1 時，該筆日期自動加一天。完成後轉成「克特 09/19 13:13」格式並依日期／時間排序。</p>
+
+<div class="card">
+ <div class="sectionTitle"><h2 style="margin:0">1. 手動輸入時間</h2><span class="pill">共 <span id="inputCount">0</span> 筆已輸入</span></div>
+ <input id="baseDate" type="hidden">
+ <div class="toolbar" style="margin:10px 0">
+  <span class="pill">日期自動使用當日</span>
+  <button class="gray" onclick="fillExample()">填入測試範例</button>
+  <button class="gray" onclick="clearInputs()">清除時間</button>
+  <button class="primary" onclick="buildResults()">產生排序結果</button>
+ </div>
+ <div class="hint">輸入方式：只需填 <b>4 位數時間</b>，例如 <b>2311</b> = 23:11、<b>0918</b> = 09:18。日期會自動使用當日；「日期+1」預設為 <b>0</b>，填 <b>1</b> 就會把該筆日期加一天。留白的時間不會加入排序結果。</div>
+ <div class="tablewrap" style="margin-top:12px">
+  <table class="inputTable"><thead><tr><th style="width:70px">編號</th><th style="width:260px">BOSS 資料庫</th><th style="width:180px">時間（4位數）</th><th style="width:130px">日期+1</th><th>轉換結果</th></tr></thead><tbody id="inputBody"></tbody></table>
+ </div>
+</div>
+
+<div class="card"><h2 style="margin:0 0 8px">2. 排序結果</h2><div id="resultSummary" class="small">尚未產生結果。</div>
+ <div class="tablewrap"><table><thead><tr><th>#</th><th>BOSS</th><th>日期</th><th>時間</th><th>完整格式</th><th>狀態</th></tr></thead><tbody id="resultBody"></tbody></table></div>
+</div>
+
+<div class="card"><h2 style="margin:0 0 8px">目前提醒</h2><div id="reminder" class="reminder">尚無資料</div><div id="countdown" class="small"></div><div class="small">最多顯示 3 筆未來時間；最前面一筆以 @ 開頭，三筆會合併成同一行並以「、」分隔。提醒會依排序結果自動更新。</div>
+ <button class="warn" onclick="testReminder()">測試提醒</button><button class="gray" onclick="exportCSV()">匯出 CSV</button>
+</div>
+
+<div class="grid">
+ <div class="card"><h2 style="margin:0 0 8px">BOSS 資料庫（可追加）</h2><p class="small">配對完全依這裡的順序。第 1 個就是編號 1；第 13 個就是第二張圖片的第 1 個；未來新增 BOSS 時，直接往下增加即可。</p><div class="tablewrap"><table class="dbTable"><thead><tr><th style="width:70px">#</th><th>BOSS 名稱</th></tr></thead><tbody id="dbBody"></tbody></table></div><button class="primary" onclick="saveDB()">儲存資料庫</button><button class="gray" onclick="addBoss()">新增 BOSS</button><button class="gray" onclick="resetDB()">恢復預設</button></div>
+ <div class="card sharebox"><h2 style="margin:0 0 8px">即時共享（保留）</h2><p class="small">可將目前手動輸入後的排序結果同步給朋友觀看。第一次建立需要網路連線；朋友頁面會定期讀取最新資料。</p><button class="primary" onclick="createOrUpdateShare()">建立／更新即時共享</button><button class="gray" onclick="copyLiveShareUrl()">複製朋友觀看網址</button><label class="small">公開網址（可選）</label><input id="publicBaseUrl" placeholder="例如 https://你的帳號.github.io/boss/index.html"><div id="shareInfo" class="small" style="margin-top:8px">尚未建立共享。</div></div>
+</div>
+
+<div class="card"><h2 style="margin:0 0 8px">資料格式</h2><div class="small">例如：資料庫第 1 個「克特」＋日期 09/19＋時間 1313＋日期+1=0 → <b>克特 09/19 13:13</b>。若時間 2311、日期+1=1，且基準日為 09/19，則結果為 <b>09/20 23:11</b>。</div></div>
+</div>
+<script>
+const DEFAULT_DB=['克特','巴風特','巨大鱷魚','伊弗利特-1','伊弗利特-2','飛龍-右單','飛龍-大骨','飛龍-YY','飛龍-左雙','黑長者-1','黑長者-2','變形怪首領','古代巨人','不死鳥','西瑪','巴土瑟','卡士伯','馬庫爾','魔法師','死亡騎士','巴列斯','巨大牛人','冰之女王','惡魔','歪曲的潔尼斯女王','巨蟻女皇'];
+let db=loadDB(), records=[], shareBinUrl=localStorage.getItem('boss_live_share_url_v2a')||'';
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function pad(n){return String(n).padStart(2,'0')}
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function fmtMD(date){return `${pad(date.getMonth()+1)}/${pad(date.getDate())}`}
+function loadDB(){try{const x=JSON.parse(localStorage.getItem('boss_db_v2a0'));return Array.isArray(x)&&x.length?x:DEFAULT_DB.slice()}catch(e){return DEFAULT_DB.slice()}}
+function drawDB(){document.getElementById('dbBody').innerHTML=db.map((n,i)=>`<tr><td>${i+1}</td><td><input data-db="${i}" value="${esc(n)}"></td></tr>`).join('');}
+function saveDB(){const vals=[...document.querySelectorAll('[data-db]')].map(x=>x.value.trim());if(!vals.length||vals.some(x=>!x))return alert('BOSS 資料庫不可有空白。');db=vals;localStorage.setItem('boss_db_v2a0',JSON.stringify(db));renderInputs();buildResults(false);alert(`已儲存 ${db.length} 個 BOSS。`)}
+function addBoss(){db.push(`新BOSS-${db.length+1}`);drawDB();renderInputs();}
+function resetDB(){if(!confirm('確定恢復預設 BOSS 資料庫？'))return;db=DEFAULT_DB.slice();localStorage.setItem('boss_db_v2a0',JSON.stringify(db));drawDB();renderInputs();buildResults(false)}
+function getSavedInputs(){try{return JSON.parse(localStorage.getItem('boss_manual_inputs_v2a0')||'{}')}catch(e){return {}}}
+function renderInputs(){const saved=getSavedInputs();const base=document.getElementById('baseDate').value||todayISO();document.getElementById('inputBody').innerHTML=db.map((n,i)=>{const x=saved[i]||{};const time=x.time||'';const off=x.offset??0;return `<tr><td><b>編號 ${i+1}</b></td><td>${esc(n)}</td><td><input class="time4" inputmode="numeric" maxlength="4" placeholder="例如 2311" data-time="${i}" value="${esc(time)}"></td><td><input class="offset" inputmode="numeric" maxlength="1" value="${esc(off)}" data-offset="${i}"></td><td id="preview-${i}" class="mono small"></td></tr>`}).join('');refreshPreviews();}
+function applyBaseDate(){const base=document.getElementById('baseDate').value||todayISO();document.querySelectorAll('[data-date]').forEach(x=>x.value=base);saveInputs();refreshPreviews();}
+function normalizeTime(raw){const s=String(raw||'').replace(/\D/g,'');if(!s)return null;if(s.length!==4)return {error:'請輸入4位數'};const h=+s.slice(0,2),m=+s.slice(2,4);if(h>23||m>59)return {error:'時間無效'};return {hour:h,minute:m,text:`${pad(h)}:${pad(m)}`}}
+function datePlus(iso,off){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+(Number(off)||0));return d}
+function getInput(i){const date=document.getElementById('baseDate').value||todayISO();const time=document.querySelector(`[data-time="${i}"]`)?.value.trim()||'';const offset=document.querySelector(`[data-offset="${i}"]`)?.value.trim()||'0';return {date,time,offset}}
+function refreshPreviews(){db.forEach((n,i)=>{const x=getInput(i),t=normalizeTime(x.time),el=document.getElementById(`preview-${i}`);if(!el)return;if(!x.time){el.textContent='';return}if(t?.error){el.innerHTML=`<span class="bad">${t.error}</span>`;return}if(!/^0$|^1$/.test(x.offset)){el.innerHTML='<span class="bad">日期+1 請填 0 或 1</span>';return}const d=datePlus(x.date,x.offset);el.textContent=`${n} ${fmtMD(d)} ${t.text}`})}
+function saveInputs(){const o={};db.forEach((n,i)=>{const x=getInput(i);o[i]=x});localStorage.setItem('boss_manual_inputs_v2a0',JSON.stringify(o));}
+function buildResults(showAlert=true){saveInputs();records=[];db.forEach((name,i)=>{const x=getInput(i),t=normalizeTime(x.time);if(!x.time)return;if(t?.error)return;if(!/^0$|^1$/.test(x.offset))return;const d=datePlus(x.date,x.offset);records.push({index:i+1,name,year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:t.hour,minute:t.minute,full:`${name} ${fmtMD(d)} ${t.text}`,status:x.offset==='1'?'日期+1':'當日'});});records.sort((a,b)=>new Date(a.year,a.month-1,a.day,a.hour,a.minute)-new Date(b.year,b.month-1,b.day,b.hour,b.minute));renderResults();refreshPreviews();if(showAlert)alert(`已產生 ${records.length} 筆排序結果。`)}
+function renderResults(){document.getElementById('resultSummary').innerHTML=`目前已輸入 <b>${records.length}</b> / ${db.length} 筆。排序依「日期 → 時間」由早到晚。`;document.getElementById('resultBody').innerHTML=records.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${r.year}/${pad(r.month)}/${pad(r.day)}</td><td class="resultTime">${pad(r.hour)}:${pad(r.minute)}</td><td><b>${esc(r.full)}</b></td><td>${r.status}</td></tr>`).join('');updateReminder()}
+function minuteValue(r){return new Date(r.year,r.month-1,r.day,r.hour,r.minute).getTime()}
+function updateReminder(){const el=document.getElementById('reminder'),cd=document.getElementById('countdown');if(!records.length){el.textContent='尚無資料';cd.textContent='';return}const now=Date.now(),future=records.filter(r=>minuteValue(r)>=now).slice(0,3);if(!future.length){el.textContent='目前沒有未來的 BOSS 時間';cd.textContent='';return}el.innerHTML=future.map((r,i)=>`${i===0?'@ ':''}${esc(r.name)} ${pad(r.hour)}:${pad(r.minute)}`).join('、');const ms=Math.max(0,minuteValue(future[0])-now),mins=Math.floor(ms/60000),secs=Math.floor(ms/1000)%60;cd.textContent=`距離下一筆約 ${mins} 分 ${pad(secs)} 秒`}
+function fillExample(){const vals=['2211','1325','1422','1311','1511','1616','1717','1818','1919','2020','1158','2211'];db.forEach((n,i)=>{const t=document.querySelector(`[data-time="${i}"]`);if(t)t.value=vals[i]||'';const o=document.querySelector(`[data-offset="${i}"]`);if(o)o.value=(i===9)?'1':'0'});saveInputs();refreshPreviews()}
+function clearInputs(){if(!confirm('確定清除所有手動時間？'))return;localStorage.removeItem('boss_manual_inputs_v2a0');renderInputs();records=[];renderResults()}
+function exportCSV(){if(!records.length)return alert('目前沒有可匯出的排序結果。');const rows=[['排序','BOSS','日期','時間','完整格式','狀態'],...records.map((r,i)=>[i+1,r.name,`${r.year}/${pad(r.month)}/${pad(r.day)}`,`${pad(r.hour)}:${pad(r.minute)}`,r.full,r.status])];const csv='\uFEFF'+rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='BOSS時間排序結果_V2A.0.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function testReminder(){if(!records.length)return alert('請先產生排序結果。');alert(records.slice(0,3).map((r,i)=>`${i===0?'@ ':''}${r.full}`).join('\n'))}
+async function createOrUpdateShare(){if(!records.length)return alert('請先產生排序結果。');const base=(document.getElementById('publicBaseUrl').value||location.href.split('#')[0]).trim();const payload={updatedAt:Date.now(),records:records.map(r=>({name:r.name,year:r.year,month:r.month,day:r.day,hour:r.hour,minute:r.minute,status:r.status,full:r.full}))};try{let res;if(shareBinUrl){res=await fetch(shareBinUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}else{res=await fetch('https://api.jsonstorage.net/v1/json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}if(!res.ok)throw new Error('共享服務回應 '+res.status);const data=await res.json();if(!shareBinUrl)shareBinUrl=data.uri;localStorage.setItem('boss_live_share_url_v2a',shareBinUrl);const viewer=base.split('#')[0]+'#viewer='+encodeURIComponent(shareBinUrl);document.getElementById('shareInfo').innerHTML=`<span class="ok">已同步。</span><br>朋友觀看網址：<input value="${esc(viewer)}" readonly>`;try{await navigator.clipboard.writeText(viewer);alert('已建立／更新共享，觀看網址已複製。')}catch(_){alert('已建立／更新共享。')}}catch(e){alert('共享失敗：'+e.message)}}
+async function copyLiveShareUrl(){if(!shareBinUrl)return alert('尚未建立共享。');const base=(document.getElementById('publicBaseUrl').value||location.href.split('#')[0]).trim();const viewer=base.split('#')[0]+'#viewer='+encodeURIComponent(shareBinUrl);try{await navigator.clipboard.writeText(viewer);alert('觀看網址已複製。')}catch(_){prompt('請複製以下網址：',viewer)}}
+async function loadViewer(){const hash=new URLSearchParams(location.hash.slice(1));const url=hash.get('viewer');if(!url)return false;document.querySelectorAll('.card').forEach(c=>c.style.display='none');const title=document.querySelector('h1');title.textContent='BOSS 目前提醒－即時共享觀看頁';const card=document.createElement('div');card.className='card';card.innerHTML='<h2>即時共享資料</h2><div id="viewerContent">讀取中...</div>';document.querySelector('.wrap').appendChild(card);async function fetchView(){try{const res=await fetch(url);if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const arr=(data.records||[]).slice().sort((a,b)=>new Date(a.year,a.month-1,a.day,a.hour,a.minute)-new Date(b.year,b.month-1,b.day,b.hour,b.minute));document.getElementById('viewerContent').innerHTML=`<div class="reminder">${arr.slice(0,10).map((r,i)=>`${i===0?'@ ':''}${esc(r.full||`${r.name} ${pad(r.month)}/${pad(r.day)} ${pad(r.hour)}:${pad(r.minute)}`)}`).join('<br>')}</div><p class="small">最後更新：${new Date(data.updatedAt||Date.now()).toLocaleString()}</p>`}catch(e){document.getElementById('viewerContent').innerHTML='<span class="bad">讀取失敗：'+esc(e.message)+'</span>'}}await fetchView();setInterval(fetchView,30000);return true}
+function init(){document.getElementById('baseDate').value=todayISO();drawDB();renderInputs();renderResults();setInterval(updateReminder,1000);loadViewer()}
+document.addEventListener('input',e=>{if(e.target.matches('[data-time],[data-offset]')){saveInputs();refreshPreviews()}});init();
+</script>
+</body></html>
